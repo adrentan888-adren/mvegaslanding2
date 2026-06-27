@@ -73,6 +73,12 @@ async function trackViewContent() {
     window.fbq('track', 'ViewContent', {}, { eventID: id });
   }
 
+  if (window.ttq) {
+    const externalIdHash = await sha256(id);
+    window.ttq.identify({ external_id: externalIdHash });
+    window.ttq.track('ViewContent', {}, { event_id: id });
+  }
+
   await sendCapi({
     event_name: 'ViewContent',
     event_id: id,
@@ -93,8 +99,14 @@ async function trackPurchase(user) {
 
   if (window.ttq) {
     const phoneHash = await sha256(cleanPhone(user.phone));
+    const externalIdHash = await sha256(id);
     if (phoneHash) {
-      window.ttq.identify({ phone_number: phoneHash });
+      window.ttq.identify({
+        phone_number: phoneHash,
+        external_id: externalIdHash
+      });
+    } else {
+      window.ttq.identify({ external_id: externalIdHash });
     }
     window.ttq.track('SubmitForm', customData, { event_id: id });
   }

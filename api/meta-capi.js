@@ -134,6 +134,7 @@ async function sendTikTokEvent({ req, event_name, event_id, event_source_url, us
     event_time: Math.floor(Date.now() / 1000),
     event_id,
     user: compact({
+      external_id: sha256(event_id),
       phone: phone ? sha256(phone) : undefined,
       ip: getClientIp(req),
       user_agent: req.headers['user-agent'],
