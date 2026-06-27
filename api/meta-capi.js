@@ -146,6 +146,7 @@ async function sendTikTokEvent({ req, event_name, event_id, event_source_url, us
     ],
     search_string: custom_data?.search_string,
     contact_url: custom_data?.contact_url,
+    button_name: custom_data?.button_name,
     description: event_name === 'Purchase' ? user.loanAmount : undefined
   });
   const event = compact({
@@ -255,7 +256,7 @@ export default async function handler(req, res) {
   }
 
   const { event_name, event_id, event_source_url, user, custom_data } = req.body || {};
-  if (!['ViewContent', 'Purchase', 'Search', 'Contact'].includes(event_name) || !event_id || !event_source_url) {
+  if (!['ViewContent', 'Purchase', 'Search', 'Contact', 'ClickButton'].includes(event_name) || !event_id || !event_source_url) {
     return res.status(400).json({ ok: false, message: 'Invalid event payload.' });
   }
 
@@ -275,7 +276,9 @@ export default async function handler(req, res) {
         ? compact({ search_string: custom_data?.search_string })
         : event_name === 'Contact'
           ? compact({ contact_url: custom_data?.contact_url })
-          : undefined
+          : event_name === 'ClickButton'
+            ? compact({ button_name: custom_data?.button_name })
+            : undefined
   });
 
   const payload = {

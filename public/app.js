@@ -88,6 +88,27 @@ async function trackContact(contactUrl) {
   });
 }
 
+async function trackClickButton(buttonName) {
+  const id = eventId('click_button');
+  const properties = {
+    ...buildTikTokProperties(),
+    button_name: buttonName
+  };
+
+  if (window.ttq) {
+    const externalIdHash = await sha256(id);
+    window.ttq.identify({ external_id: externalIdHash });
+    window.ttq.track('ClickButton', properties, { event_id: id });
+  }
+
+  await sendCapi({
+    event_name: 'ClickButton',
+    event_id: id,
+    event_source_url: window.location.href,
+    custom_data: properties
+  });
+}
+
 function cleanPhone(value) {
   const digits = String(value || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -202,6 +223,10 @@ document.getElementById('purchaseForm').addEventListener('submit', async (event)
 
   if (!form.reportValidity()) return;
 
+  trackClickButton('Hantar Permohonan').catch((error) => {
+    console.error('ClickButton tracking failed:', error);
+  });
+
   const data = new FormData(form);
   button.disabled = true;
   status.textContent = 'Sedang menghantar...';
@@ -241,7 +266,9 @@ document.querySelectorAll('a[href*="wasap.my"]').forEach((link) => {
   link.addEventListener('click', (event) => {
     event.preventDefault();
     const targetUrl = link.href;
+    const buttonName = link.textContent.trim().replace(/\s+/g, ' ') || 'WhatsApp';
     Promise.race([
+      trackClickButton(buttonName),
       trackContact(targetUrl),
       new Promise((resolve) => window.setTimeout(resolve, 700))
     ]).finally(() => {
