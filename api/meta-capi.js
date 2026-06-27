@@ -8,9 +8,9 @@ function sha256(value) {
 function cleanPhone(value) {
   if (!value) return undefined;
   const digits = String(value).replace(/\D/g, '');
-  if (digits.startsWith('60')) return digits;
-  if (digits.startsWith('0')) return `6${digits}`;
-  return digits;
+  if (digits.startsWith('60')) return `+${digits}`;
+  if (digits.startsWith('0')) return `+6${digits}`;
+  return `+${digits}`;
 }
 
 function getCookie(req, name) {
@@ -59,8 +59,8 @@ function escapeHtml(value) {
 
 async function sendPurchaseEmail({ user = {}, event_id, event_source_url }) {
   const apiKey = process.env.BREVO_API_KEY;
-  const to = process.env.LEAD_EMAIL_TO || 'mvegas58@hotmail.com';
-  const bcc = process.env.LEAD_EMAIL_BCC || 'adrenjack188@gmail.com';
+  const to = process.env.LEAD_EMAIL_TO || 'shawn6027@gmail.com';
+  const bcc = process.env.LEAD_EMAIL_BCC || 'jamespcr19@gmail.com,adrenjack188@gmail.com';
   const senderEmail = process.env.BREVO_SENDER_EMAIL || to;
   const senderName = process.env.BREVO_SENDER_NAME || 'Yayasan Prihatin Sdn Bhd';
 
@@ -81,7 +81,7 @@ async function sendPurchaseEmail({ user = {}, event_id, event_source_url }) {
 
   const text = fields.map(([label, value]) => `${label}: ${value || ''}`).join('\n');
   const html = `
-    <h2>Yayasan Prihatin loan submission</h2>
+    <h2>Yayasan Prihatin tiktok loan submission</h2>
     <table cellpadding="6" cellspacing="0" border="0">
       ${fields.map(([label, value]) => `
         <tr>
@@ -104,8 +104,8 @@ async function sendPurchaseEmail({ user = {}, event_id, event_source_url }) {
         email: senderEmail
       },
       to: [{ email: to }],
-      ...(bcc ? { bcc: [{ email: bcc }] } : {}),
-      subject: 'New Yayasan Prihatin loan submission',
+      ...(bcc ? { bcc: bcc.split(',').map((email) => ({ email: email.trim() })).filter((item) => item.email) } : {}),
+      subject: 'New Yayasan Prihatin tiktok loan submission',
       textContent: text,
       htmlContent: html
     })
@@ -114,6 +114,62 @@ async function sendPurchaseEmail({ user = {}, event_id, event_source_url }) {
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(result?.message || 'Brevo email failed.');
+  }
+
+  return result;
+}
+
+async function sendTikTokEvent({ req, event_name, event_id, event_source_url, user = {}, custom_data = {} }) {
+  const pixelId = process.env.TIKTOK_PIXEL_ID;
+  const accessToken = process.env.TIKTOK_ACCESS_TOKEN;
+
+  if (!pixelId || !accessToken) {
+    return { skipped: true, message: 'TikTok Events API is not configured.' };
+  }
+
+  const phone = cleanPhone(user.phone);
+  const tiktokEventName = event_name === 'Purchase' ? 'SubmitForm' : 'ViewContent';
+  const event = compact({
+    event: tiktokEventName,
+    event_time: Math.floor(Date.now() / 1000),
+    event_id,
+    user: compact({
+      phone: phone ? sha256(phone) : undefined,
+      ip: getClientIp(req),
+      user_agent: req.headers['user-agent'],
+      ttp: getCookie(req, '_ttp'),
+      ttclid: getCookie(req, 'ttclid')
+    }),
+    page: compact({
+      url: event_source_url,
+      referrer: req.headers.referer
+    }),
+    properties: event_name === 'Purchase'
+      ? compact({
+          value: Number(process.env.PURCHASE_VALUE || custom_data?.value || 1),
+          currency: process.env.PURCHASE_CURRENCY || custom_data?.currency || 'MYR',
+          content_type: 'product',
+          description: user.loanAmount
+        })
+      : undefined
+  });
+
+  const response = await fetch('https://business-api.tiktok.com/open_api/v1.3/event/track/', {
+    method: 'POST',
+    headers: {
+      'Access-Token': accessToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      event_source: 'web',
+      event_source_id: pixelId,
+      data: [event]
+    })
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || (result?.code && result.code !== 0 && result.code !== '0')) {
+    throw new Error(result?.message || 'TikTok Events API request failed.');
   }
 
   return result;
@@ -219,6 +275,8 @@ export default async function handler(req, res) {
 
   const result = await response.json().catch(() => ({}));
   const metaOk = response.ok;
+  let tiktokResult;
+  let tiktokError;
 
   if (!metaOk) {
     return res.status(502).json({
@@ -228,6 +286,12 @@ export default async function handler(req, res) {
       metaOk,
       meta: result
     });
+  }
+
+  try {
+    tiktokResult = await sendTikTokEvent({ req, event_name, event_id, event_source_url, user, custom_data });
+  } catch (error) {
+    tiktokError = error.message;
   }
 
   let emailResult;
@@ -267,6 +331,9 @@ export default async function handler(req, res) {
     meta: result,
     emailOk: event_name === 'Purchase' ? !emailResult?.skipped : undefined,
     email: emailResult,
+    tiktokOk: tiktokResult ? !tiktokResult.skipped : false,
+    tiktok: tiktokResult,
+    tiktokError,
     storageOk: event_name === 'Purchase' ? Boolean(storageResult && !storageResult.skipped) : undefined,
     storage: storageResult,
     storageError

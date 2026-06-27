@@ -1,10 +1,11 @@
 const state = {
   pixelId: '',
+  tiktokPixelId: '',
   purchaseValue: 1,
   purchaseCurrency: 'MYR'
 };
 
-const whatsappUrl = 'https://minatmohonloan.wasap.my';
+const whatsappUrl = 'https://shwconsultmy.wasap.my';
 const socialProofMessages = [
   'Permohonan RM7,200 oleh A****n bin S*****i dari Klang telah diluluskan 27 minit yang lalu.',
   'Permohonan RM10,800 oleh F****z bin R*****i dari Petaling Jaya telah diluluskan 43 minit yang lalu.',
@@ -18,6 +19,21 @@ const socialProofMessages = [
 
 function eventId(prefix) {
   return `${prefix}_${Date.now()}_${crypto.randomUUID()}`;
+}
+
+function cleanPhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('60')) return `+${digits}`;
+  if (digits.startsWith('0')) return `+6${digits}`;
+  return `+${digits}`;
+}
+
+async function sha256(value) {
+  if (!value) return '';
+  const data = new TextEncoder().encode(String(value).trim().toLowerCase());
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 function loadPixel(pixelId) {
@@ -73,6 +89,14 @@ async function trackPurchase(user) {
 
   if (window.fbq) {
     window.fbq('track', 'Purchase', customData, { eventID: id });
+  }
+
+  if (window.ttq) {
+    const phoneHash = await sha256(cleanPhone(user.phone));
+    if (phoneHash) {
+      window.ttq.identify({ phone_number: phoneHash });
+    }
+    window.ttq.track('SubmitForm', customData, { event_id: id });
   }
 
   return sendCapi({
