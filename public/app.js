@@ -63,6 +63,31 @@ async function trackSearch(searchString) {
   });
 }
 
+async function trackContact(contactUrl) {
+  const id = eventId('contact');
+  const properties = {
+    ...buildTikTokProperties(),
+    contact_url: contactUrl
+  };
+
+  if (window.fbq) {
+    window.fbq('track', 'Contact', {}, { eventID: id });
+  }
+
+  if (window.ttq) {
+    const externalIdHash = await sha256(id);
+    window.ttq.identify({ external_id: externalIdHash });
+    window.ttq.track('Contact', properties, { event_id: id });
+  }
+
+  await sendCapi({
+    event_name: 'Contact',
+    event_id: id,
+    event_source_url: window.location.href,
+    custom_data: properties
+  });
+}
+
 function cleanPhone(value) {
   const digits = String(value || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -209,6 +234,19 @@ document.querySelectorAll('select[name="loanAmount"], select[name="state"]').for
         console.error('Search tracking failed:', error);
       });
     }
+  });
+});
+
+document.querySelectorAll('a[href*="wasap.my"]').forEach((link) => {
+  link.addEventListener('click', (event) => {
+    event.preventDefault();
+    const targetUrl = link.href;
+    Promise.race([
+      trackContact(targetUrl),
+      new Promise((resolve) => window.setTimeout(resolve, 700))
+    ]).finally(() => {
+      window.location.href = targetUrl;
+    });
   });
 });
 

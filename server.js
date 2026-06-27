@@ -155,6 +155,7 @@ async function sendTikTokEvent({ req, event_name, event_id, event_source_url, us
       }
     ],
     search_string: custom_data?.search_string,
+    contact_url: custom_data?.contact_url,
     description: event_name === 'Purchase' ? user.loanAmount : undefined
   });
   const event = compact({
@@ -269,7 +270,7 @@ app.post('/api/meta-capi', async (req, res) => {
   }
 
   const { event_name, event_id, event_source_url, user, custom_data } = req.body || {};
-  if (!['ViewContent', 'Purchase', 'Search'].includes(event_name) || !event_id || !event_source_url) {
+  if (!['ViewContent', 'Purchase', 'Search', 'Contact'].includes(event_name) || !event_id || !event_source_url) {
     return res.status(400).json({ ok: false, message: 'Invalid event payload.' });
   }
 
@@ -287,7 +288,9 @@ app.post('/api/meta-capi', async (req, res) => {
         })
       : event_name === 'Search'
         ? compact({ search_string: custom_data?.search_string })
-        : undefined
+        : event_name === 'Contact'
+          ? compact({ contact_url: custom_data?.contact_url })
+          : undefined
   });
 
   const payload = {
