@@ -256,10 +256,11 @@ export default async function handler(req, res) {
   }
 
   const { event_name, event_id, event_source_url, user, custom_data } = req.body || {};
-  if (!['ViewContent', 'Purchase', 'Search', 'Contact', 'ClickButton', 'AddToWishlist'].includes(event_name) || !event_id || !event_source_url) {
+  if (!['ViewContent', 'Purchase', 'Search', 'Contact', 'ClickButton', 'AddToWishlist', 'CompleteRegistration'].includes(event_name) || !event_id || !event_source_url) {
     return res.status(400).json({ ok: false, message: 'Invalid event payload.' });
   }
 
+  const isMetaEvent = ['ViewContent', 'Purchase', 'Search'].includes(event_name);
   const event = compact({
     event_name,
     event_time: Math.floor(Date.now() / 1000),
@@ -286,15 +287,19 @@ export default async function handler(req, res) {
     ...(process.env.META_TEST_EVENT_CODE ? { test_event_code: process.env.META_TEST_EVENT_CODE } : {})
   };
 
-  const url = `https://graph.facebook.com/${apiVersion}/${pixelId}/events?access_token=${encodeURIComponent(accessToken)}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  let result = { skipped: true, message: 'Meta event skipped for TikTok-only event.' };
+  let metaOk = true;
+  if (isMetaEvent) {
+    const url = `https://graph.facebook.com/${apiVersion}/${pixelId}/events?access_token=${encodeURIComponent(accessToken)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-  const result = await response.json().catch(() => ({}));
-  const metaOk = response.ok;
+    result = await response.json().catch(() => ({}));
+    metaOk = response.ok;
+  }
   let tiktokResult;
   let tiktokError;
 
