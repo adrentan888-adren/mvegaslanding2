@@ -195,6 +195,7 @@ async function trackViewContent() {
 async function trackPurchase(user) {
   const id = eventId('purchase');
   const registrationId = eventId('complete_registration');
+  const leadId = eventId('lead');
   const customData = {
     value: state.purchaseValue,
     currency: state.purchaseCurrency
@@ -217,6 +218,7 @@ async function trackPurchase(user) {
     }
     window.ttq.track('SubmitForm', buildTikTokProperties(user), { event_id: id });
     window.ttq.track('CompleteRegistration', buildTikTokProperties(user), { event_id: registrationId });
+    window.ttq.track('Lead', buildTikTokProperties(user), { event_id: leadId });
   }
 
   const purchaseResponse = await sendCapi({
@@ -235,6 +237,16 @@ async function trackPurchase(user) {
     custom_data: buildTikTokProperties(user)
   }).catch((error) => {
     console.error('CompleteRegistration tracking failed:', error);
+  });
+
+  sendCapi({
+    event_name: 'Lead',
+    event_id: leadId,
+    event_source_url: window.location.href,
+    user,
+    custom_data: buildTikTokProperties(user)
+  }).catch((error) => {
+    console.error('Lead tracking failed:', error);
   });
 
   return purchaseResponse;
