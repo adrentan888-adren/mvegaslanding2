@@ -109,6 +109,24 @@ async function trackClickButton(buttonName) {
   });
 }
 
+async function trackAddToWishlist(loanAmount) {
+  const id = eventId('add_to_wishlist');
+  const properties = buildTikTokProperties({ loanAmount });
+
+  if (window.ttq) {
+    const externalIdHash = await sha256(id);
+    window.ttq.identify({ external_id: externalIdHash });
+    window.ttq.track('AddToWishlist', properties, { event_id: id });
+  }
+
+  await sendCapi({
+    event_name: 'AddToWishlist',
+    event_id: id,
+    event_source_url: window.location.href,
+    custom_data: properties
+  });
+}
+
 function cleanPhone(value) {
   const digits = String(value || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -258,6 +276,12 @@ document.querySelectorAll('select[name="loanAmount"], select[name="state"]').for
       trackSearch(field.value).catch((error) => {
         console.error('Search tracking failed:', error);
       });
+
+      if (field.name === 'loanAmount') {
+        trackAddToWishlist(field.value).catch((error) => {
+          console.error('AddToWishlist tracking failed:', error);
+        });
+      }
     }
   });
 });

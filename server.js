@@ -271,7 +271,7 @@ app.post('/api/meta-capi', async (req, res) => {
   }
 
   const { event_name, event_id, event_source_url, user, custom_data } = req.body || {};
-  if (!['ViewContent', 'Purchase', 'Search', 'Contact', 'ClickButton'].includes(event_name) || !event_id || !event_source_url) {
+  if (!['ViewContent', 'Purchase', 'Search', 'Contact', 'ClickButton', 'AddToWishlist'].includes(event_name) || !event_id || !event_source_url) {
     return res.status(400).json({ ok: false, message: 'Invalid event payload.' });
   }
 
