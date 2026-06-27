@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ms">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leads - Yayasan Prihatin Sdn Bhd</title>
+    <link rel="stylesheet" href="/leads.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="toolbar">
+        <div>
+          <p class="eyebrow">Yayasan Prihatin Sdn Bhd</p>
+          <h1>Lead Submissions</h1>
+        </div>
+        <div class="actions">
+          <button id="refreshButton" type="button">Refresh</button>
+          <button id="logoutButton" type="button">Logout</button>
+        </div>
+      </section>
+
+      <section class="login-panel" id="loginPanel">
+        <form id="loginForm">
+          <label>
+            <span>Admin Password</span>
+            <input id="passwordInput" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">View Leads</button>
+          <p class="status" id="loginStatus" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="table-panel is-hidden" id="tablePanel">
+        <div class="summary">
+          <span id="leadCount">0 leads</span>
+          <span id="lastUpdated">Not loaded</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Submitted</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Loan Amount</th>
+                <th>State</th>
+                <th>Meta</th>
+                <th>Email</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="leadRows"></tbody>
+          </table>
+        </div>
+        <p class="status" id="tableStatus" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <script src="/leads.js" defer></script>
+  </body>
+</html>

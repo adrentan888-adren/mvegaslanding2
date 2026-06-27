@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ms">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yayasan Prihatin Sdn Bhd - Pinjaman Peribadi Berlesen Malaysia</title>
+    <link rel="icon" type="image/jpeg" href="/assets/yayasan-prihatin-logo.jpg" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '4304994786442153');
+      fbq('track', 'PageView');
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=4304994786442153&ev=PageView&noscript=1" />
+    </noscript>
+    <div class="site-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Yayasan Prihatin Sdn Bhd">
+          <img class="brand-logo" src="/assets/yayasan-prihatin-logo.jpg" alt="Yayasan Prihatin Sdn Bhd" />
+          <span class="brand-name">Yayasan Prihatin Sdn Bhd</span>
+        </a>
+        <a class="contact-button" href="https://minatmohonloan.wasap.my">Hubungi Kami</a>
+      </header>
+
+      <main>
+        <section class="hero" id="apply">
+          <div class="hero-inner">
+            <div class="hero-copy">
+              <p class="eyebrow">Pemberi pinjam wang berlesen yang diluluskan KPKT</p>
+              <h1>Pinjaman Peribadi Langsung Hari Ini!</h1>
+              <p>
+                Lulus dalam 24 jam. <strong class="deposit-highlight">TANPA BAYARAN DEPOSIT</strong>.
+                Tiada penjamin diperlukan. Kadar faedah yang bercompetitif untuk rakyat Malaysia.
+              </p>
+              <div class="hero-points">
+                <span>RM 1,000 - RM 50,000</span>
+                <span>Konsultasi dalam 3 jam</span>
+                <span>Tiada kos tersembunyi</span>
+              </div>
+            </div>
+
+            <form class="application-card" id="purchaseForm" autocomplete="on">
+              <div class="form-content" id="formContent">
+                <div class="mobile-form-promo">
+                  <strong>Pinjaman Peribadi Langsung Hari Ini!</strong>
+                  <span>
+                    Lulus dalam 24 jam. <mark>TANPA BAYARAN DEPOSIT</mark>.
+                    Tiada penjamin diperlukan.
+                  </span>
+                </div>
+                <h2>Mohon Sekarang</h2>
+                <p class="form-intro">Semakan kelayakan percuma. Ambil masa kurang 30 saat.</p>
+                <label>
+                  <span>Nama Penuh</span>
+                  <input name="fullName" autocomplete="name" placeholder="Masukkan nama penuh anda" required />
+                </label>
+                <label>
+                  <span>Nombor Telefon (WhatsApp)</span>
+                  <input name="phone" type="tel" autocomplete="tel" placeholder="01X-XXX XXXX" required />
+                </label>
+                <p class="field-reassurance">Nombor telefon hanya digunakan untuk semakan permohonan pinjaman anda.</p>
+                <label>
+                  <span>Jumlah Pinjaman (RM)</span>
+                  <select name="loanAmount" required>
+                    <option value="">Pilih jumlah pinjaman</option>
+                    <option>RM 1,000 - RM 3,000</option>
+                    <option>RM 3,001 - RM 5,000</option>
+                    <option>RM 5,001 - RM 10,000</option>
+                    <option>RM 10,001 - RM 20,000</option>
+                    <option>RM 20,001 - RM 30,000</option>
+                    <option>RM 30,001 - RM 50,000</option>
+                    <option>RM 50,001 ke atas</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Kawasan / Negeri</span>
+                  <select name="state" required>
+                    <option value="">Pilih kawasan</option>
+                    <option>Kuala Lumpur</option>
+                    <option>Selangor</option>
+                    <option>Johor</option>
+                    <option>Kedah</option>
+                    <option>Kelantan</option>
+                    <option>Melaka</option>
+                    <option>Negeri Sembilan</option>
+                    <option>Pahang</option>
+                    <option>Perak</option>
+                    <option>Perlis</option>
+                    <option>Pulau Pinang</option>
+                    <option>Sabah</option>
+                    <option>Sarawak</option>
+                    <option>Terengganu</option>
+                  </select>
+                </label>
+                <button type="submit" id="submitButton">Hantar Permohonan</button>
+                <p class="terms">Dengan menghantar borang ini, anda bersetuju untuk dihubungi berkenaan permohonan pinjaman anda.</p>
+                <p class="note"><strong>Nota:</strong> Kami tidak akan berkongsi maklumat anda dengan pihak ketiga.</p>
+                <p class="status" id="status" aria-live="polite"></p>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="eligibility">
+          <div class="section-inner narrow">
+            <h2>Tentang Yayasan Prihatin Sdn Bhd</h2>
+            <p class="section-subtitle">
+              Syarikat pemberi pinjam wang berlesen yang diluluskan oleh KPKT di Malaysia, menyediakan pinjaman peribadi pada kadar faedah yang kompetitif.
+            </p>
+            <div class="eligibility-list">
+              <span>Perunding mesra dengan pengalaman sehingga 10 tahun</span>
+              <span>Pinjaman peribadi untuk keperluan kewangan segera</span>
+              <span>Kadar faedah kompetitif dengan bayaran balik fleksibel</span>
+              <span>Permohonan blacklist / CTOS masih boleh disemak</span>
+            </div>
+            <a class="whatsapp-button" href="https://minatmohonloan.wasap.my">Hubungi Kami di WhatsApp</a>
+          </div>
+        </section>
+
+        <section class="why">
+          <div class="section-inner">
+            <h2>Servis Pinjaman Kami</h2>
+            <p class="section-subtitle">Servis pinjaman diluluskan KPKT untuk keperluan peribadi, perniagaan dan cagaran hartanah.</p>
+            <div class="feature-grid">
+              <article>
+                <img src="/assets/mvegas-service-personal.jpg" alt="" />
+                <h3>Pinjaman Peribadi</h3>
+                <p><strong>RM 1,000 - RM 50,000.</strong> Permohonan mudah, pantas dan tidak rumit untuk keperluan tunai segera.</p>
+              </article>
+              <article>
+                <img src="/assets/mvegas-service-business.jpg" alt="" />
+                <h3>Pinjaman Perniagaan</h3>
+                <p><strong>RM 5,000 - RM 100,000.</strong> Pembiayaan fleksibel untuk menyokong perkembangan perniagaan dan aliran tunai.</p>
+              </article>
+              <article>
+                <img src="/assets/mvegas-service-mortgage.jpg" alt="" />
+                <h3>Cagaran Hartanah</h3>
+                <p><strong>RM 50,000 - RM 500,000.</strong> Sokongan pinjaman yang sesuai untuk perbelanjaan besar dan keperluan tunai.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="steps">
+          <div class="section-inner">
+            <h2>Cara Memohon</h2>
+            <div class="step-grid">
+              <article>
+                <span>1</span>
+                <h3>Isi Borang</h3>
+                <p>Lengkapkan nama, nombor telefon, jumlah pinjaman dan kawasan anda.</p>
+              </article>
+              <article>
+                <span>2</span>
+                <h3>Konsultasi</h3>
+                <p>Perunding kami akan menyemak permohonan dan menghubungi anda dengan segera.</p>
+              </article>
+              <article>
+                <span>3</span>
+                <h3>Kelulusan</h3>
+                <p>Selepas diluluskan, proses pinjaman adalah cepat dan mudah.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="documents">
+          <div class="section-inner narrow">
+            <h2>Dokumen Diperlukan</h2>
+            <div class="document-list">
+              <span>Penyata bank 3 bulan terkini</span>
+              <span>Slip gaji 3 bulan terkini</span>
+              <span>Bil utiliti terkini</span>
+              <span>Salinan kad pengenalan</span>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <div class="footer-brand">
+          <img class="brand-logo" src="/assets/yayasan-prihatin-logo.jpg" alt="Yayasan Prihatin Sdn Bhd" />
+          <span class="brand-name">Yayasan Prihatin Sdn Bhd</span>
+        </div>
+        <p>Yayasan Prihatin Sdn Bhd ialah syarikat pemberi pinjam wang berlesen yang diluluskan oleh KPKT di Malaysia.</p>
+        <p>32-2A Tingkat 2 Blok 2 Jalan Pahat G 15/G Sek 15, 40200 Shah Alam Selangor, Malaysia</p>
+      </footer>
+    </div>
+
+    <div class="social-proof" id="socialProof" aria-live="polite" aria-atomic="true">
+      <span class="social-proof-dot"></span>
+      <p id="socialProofText"></p>
+    </div>
+
+    <a class="sticky-whatsapp" href="https://minatmohonloan.wasap.my" aria-label="Hubungi kami di WhatsApp">
+      <img src="/assets/whatsapp-logo.svg" alt="" aria-hidden="true" />
+      <span>WhatsApp</span>
+      <strong>Hubungi Kami</strong>
+    </a>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

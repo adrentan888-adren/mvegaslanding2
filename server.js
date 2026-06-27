@@ -1,0 +1,292 @@
+import crypto from 'crypto';
+import express from 'express';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const app = express();
+const port = Number(process.env.PORT || 3000);
+
+app.use(express.json({ limit: '64kb' }));
+app.use(express.static('public'));
+
+function sha256(value) {
+  if (!value) return undefined;
+  return crypto.createHash('sha256').update(String(value).trim().toLowerCase()).digest('hex');
+}
+
+function cleanPhone(value) {
+  if (!value) return undefined;
+  const digits = String(value).replace(/\D/g, '');
+  if (digits.startsWith('60')) return digits;
+  if (digits.startsWith('0')) return `6${digits}`;
+  return digits;
+}
+
+function getCookie(req, name) {
+  const cookies = req.headers.cookie || '';
+  const match = cookies.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.length > 0) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.socket.remoteAddress;
+}
+
+function buildUserData(req, user = {}) {
+  const phone = cleanPhone(user.phone);
+  const nameParts = String(user.fullName || '').trim().split(/\s+/).filter(Boolean);
+  const firstName = user.firstName || nameParts[0];
+  const lastName = user.lastName || nameParts.slice(1).join(' ');
+  return {
+    em: sha256(user.email),
+    ph: phone ? sha256(phone) : undefined,
+    fn: sha256(firstName),
+    ln: sha256(lastName),
+    client_ip_address: getClientIp(req),
+    client_user_agent: req.headers['user-agent'],
+    fbp: getCookie(req, '_fbp'),
+    fbc: getCookie(req, '_fbc')
+  };
+}
+
+function compact(value) {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined && item !== ''));
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function sendPurchaseEmail({ user = {}, event_id, event_source_url }) {
+  const apiKey = process.env.BREVO_API_KEY;
+  const to = process.env.LEAD_EMAIL_TO || 'mvegas58@hotmail.com';
+  const bcc = process.env.LEAD_EMAIL_BCC || 'adrenjack188@gmail.com';
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || to;
+  const senderName = process.env.BREVO_SENDER_NAME || 'Yayasan Prihatin Sdn Bhd';
+
+  if (!apiKey) {
+    return { skipped: true, message: 'Brevo API key is not configured.' };
+  }
+
+  const fields = [
+    ['Nama Penuh', user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim()],
+    ['Email', user.email],
+    ['Nombor Telefon', user.phone],
+    ['Jumlah Pinjaman', user.loanAmount],
+    ['Area / Negeri', user.state],
+    ['Event ID', event_id],
+    ['Source URL', event_source_url],
+    ['Submitted at', new Date().toISOString()]
+  ];
+
+  const text = fields.map(([label, value]) => `${label}: ${value || ''}`).join('\n');
+  const html = `
+    <h2>Yayasan Prihatin loan submission</h2>
+    <table cellpadding="6" cellspacing="0" border="0">
+      ${fields.map(([label, value]) => `
+        <tr>
+          <td><strong>${escapeHtml(label)}</strong></td>
+          <td>${escapeHtml(value)}</td>
+        </tr>
+      `).join('')}
+    </table>
+  `;
+
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': apiKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      sender: {
+        name: senderName,
+        email: senderEmail
+      },
+      to: [{ email: to }],
+      ...(bcc ? { bcc: [{ email: bcc }] } : {}),
+      subject: 'New Yayasan Prihatin loan submission',
+      textContent: text,
+      htmlContent: html
+    })
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result?.message || 'Brevo email failed.');
+  }
+
+  return result;
+}
+
+async function saveLeadToSupabase({ req, user = {}, event_id, event_source_url, metaOk, emailOk }) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const table = process.env.SUPABASE_LEADS_TABLE || 'leads';
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return { skipped: true, message: 'Supabase lead storage is not configured.' };
+  }
+
+  const endpoint = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/${encodeURIComponent(table)}`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal'
+    },
+    body: JSON.stringify({
+      submitted_at: new Date().toISOString(),
+      full_name: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      phone: user.phone,
+      loan_amount: user.loanAmount,
+      state: user.state,
+      source_url: event_source_url,
+      event_id,
+      meta_status: metaOk ? 'success' : 'fail',
+      email_status: emailOk ? 'success' : 'fail',
+      user_agent: req.headers['user-agent'],
+      client_ip: getClientIp(req)
+    })
+  });
+
+  const text = await response.text();
+  let result;
+  try {
+    result = text ? JSON.parse(text) : {};
+  } catch {
+    result = { message: text };
+  }
+
+  if (!response.ok || result?.ok === false) {
+    throw new Error(result?.message || result?.hint || 'Supabase lead storage failed.');
+  }
+
+  return { ok: true };
+}
+
+app.get('/api/config', (req, res) => {
+  res.json({
+    pixelId: process.env.META_PIXEL_ID || '',
+    purchaseValue: Number(process.env.PURCHASE_VALUE || 1),
+    purchaseCurrency: process.env.PURCHASE_CURRENCY || 'MYR'
+  });
+});
+
+app.post('/api/meta-capi', async (req, res) => {
+  const pixelId = process.env.META_PIXEL_ID;
+  const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
+  const apiVersion = process.env.META_API_VERSION || 'v20.0';
+
+  if (!pixelId || !accessToken || pixelId === 'your_meta_pixel_id') {
+    return res.status(202).json({
+      ok: false,
+      skipped: true,
+      message: 'Meta credentials are not configured.'
+    });
+  }
+
+  const { event_name, event_id, event_source_url, user, custom_data } = req.body || {};
+  if (!['ViewContent', 'Purchase'].includes(event_name) || !event_id || !event_source_url) {
+    return res.status(400).json({ ok: false, message: 'Invalid event payload.' });
+  }
+
+  const event = compact({
+    event_name,
+    event_time: Math.floor(Date.now() / 1000),
+    event_id,
+    event_source_url,
+    action_source: 'website',
+    user_data: compact(buildUserData(req, user)),
+    custom_data: event_name === 'Purchase'
+      ? compact({
+          value: Number(process.env.PURCHASE_VALUE || custom_data?.value || 1),
+          currency: process.env.PURCHASE_CURRENCY || custom_data?.currency || 'MYR'
+        })
+      : undefined
+  });
+
+  const payload = {
+    data: [event],
+    ...(process.env.META_TEST_EVENT_CODE ? { test_event_code: process.env.META_TEST_EVENT_CODE } : {})
+  };
+
+  const url = `https://graph.facebook.com/${apiVersion}/${pixelId}/events?access_token=${encodeURIComponent(accessToken)}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  const result = await response.json().catch(() => ({}));
+  const metaOk = response.ok;
+
+  if (!metaOk) {
+    return res.status(502).json({
+      ok: false,
+      step: 'meta',
+      message: result?.error?.message || 'Meta CAPI request failed.',
+      metaOk,
+      meta: result
+    });
+  }
+
+  let emailResult;
+  let storageResult;
+  let storageError;
+  if (event_name === 'Purchase') {
+    try {
+      emailResult = await sendPurchaseEmail({ user, event_id, event_source_url });
+    } catch (error) {
+      return res.status(502).json({
+        ok: false,
+        step: 'email',
+        message: error.message,
+        metaOk,
+        meta: result,
+        emailOk: false
+      });
+    }
+
+    try {
+      storageResult = await saveLeadToSupabase({
+        req,
+        user,
+        event_id,
+        event_source_url,
+        metaOk,
+        emailOk: !emailResult?.skipped
+      });
+    } catch (error) {
+      storageError = error.message;
+    }
+  }
+
+  res.json({
+    ok: true,
+    metaOk,
+    meta: result,
+    emailOk: event_name === 'Purchase' ? !emailResult?.skipped : undefined,
+    email: emailResult,
+    storageOk: event_name === 'Purchase' ? Boolean(storageResult && !storageResult.skipped) : undefined,
+    storage: storageResult,
+    storageError
+  });
+});
+
+app.listen(port, () => {
+  console.log(`mvegaslanding2 running at http://localhost:${port}`);
+});
