@@ -150,9 +150,29 @@ async function sendTikTokEvent({ req, event_name, event_id, event_source_url, us
           value: Number(process.env.PURCHASE_VALUE || custom_data?.value || 1),
           currency: process.env.PURCHASE_CURRENCY || custom_data?.currency || 'MYR',
           content_type: 'product',
+          contents: [
+            {
+              content_id: 'personal_loan_application',
+              content_name: user.loanAmount || 'Pinjaman Peribadi',
+              content_category: 'loan_application',
+              quantity: 1,
+              price: Number(process.env.PURCHASE_VALUE || custom_data?.value || 1)
+            }
+          ],
           description: user.loanAmount
         })
-      : undefined
+      : {
+          content_type: 'product',
+          contents: [
+            {
+              content_id: 'personal_loan_application',
+              content_name: 'Pinjaman Peribadi',
+              content_category: 'loan_application',
+              quantity: 1,
+              price: Number(process.env.PURCHASE_VALUE || custom_data?.value || 1)
+            }
+          ]
+        }
   });
 
   const response = await fetch('https://business-api.tiktok.com/open_api/v1.3/event/track/', {

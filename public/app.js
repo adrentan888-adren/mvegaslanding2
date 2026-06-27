@@ -21,6 +21,23 @@ function eventId(prefix) {
   return `${prefix}_${Date.now()}_${crypto.randomUUID()}`;
 }
 
+function buildTikTokProperties(user = {}) {
+  return {
+    value: state.purchaseValue,
+    currency: state.purchaseCurrency,
+    content_type: 'product',
+    contents: [
+      {
+        content_id: 'personal_loan_application',
+        content_name: user.loanAmount || 'Pinjaman Peribadi',
+        content_category: 'loan_application',
+        quantity: 1,
+        price: state.purchaseValue
+      }
+    ]
+  };
+}
+
 function cleanPhone(value) {
   const digits = String(value || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -76,7 +93,7 @@ async function trackViewContent() {
   if (window.ttq) {
     const externalIdHash = await sha256(id);
     window.ttq.identify({ external_id: externalIdHash });
-    window.ttq.track('ViewContent', {}, { event_id: id });
+    window.ttq.track('ViewContent', buildTikTokProperties(), { event_id: id });
   }
 
   await sendCapi({
@@ -108,7 +125,7 @@ async function trackPurchase(user) {
     } else {
       window.ttq.identify({ external_id: externalIdHash });
     }
-    window.ttq.track('SubmitForm', customData, { event_id: id });
+    window.ttq.track('SubmitForm', buildTikTokProperties(user), { event_id: id });
   }
 
   return sendCapi({
