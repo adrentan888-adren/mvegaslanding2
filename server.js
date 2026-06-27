@@ -138,7 +138,25 @@ async function sendTikTokEvent({ req, event_name, event_id, event_source_url, us
   }
 
   const phone = cleanPhone(user.phone);
-  const tiktokEventName = event_name === 'Purchase' ? 'SubmitForm' : 'ViewContent';
+  const tiktokEventName = event_name === 'Purchase' ? 'SubmitForm' : event_name;
+  const value = Number(process.env.PURCHASE_VALUE || custom_data?.value || 1);
+  const currency = process.env.PURCHASE_CURRENCY || custom_data?.currency || 'MYR';
+  const properties = compact({
+    value,
+    currency,
+    content_type: 'product',
+    contents: [
+      {
+        content_id: 'personal_loan_application',
+        content_name: user.loanAmount || custom_data?.contents?.[0]?.content_name || 'Pinjaman Peribadi',
+        content_category: 'loan_application',
+        quantity: 1,
+        price: value
+      }
+    ],
+    search_string: custom_data?.search_string,
+    description: event_name === 'Purchase' ? user.loanAmount : undefined
+  });
   const event = compact({
     event: tiktokEventName,
     event_time: Math.floor(Date.now() / 1000),
@@ -155,34 +173,7 @@ async function sendTikTokEvent({ req, event_name, event_id, event_source_url, us
       url: event_source_url,
       referrer: req.headers.referer
     }),
-    properties: event_name === 'Purchase'
-      ? compact({
-          value: Number(process.env.PURCHASE_VALUE || custom_data?.value || 1),
-          currency: process.env.PURCHASE_CURRENCY || custom_data?.currency || 'MYR',
-          content_type: 'product',
-          contents: [
-            {
-              content_id: 'personal_loan_application',
-              content_name: user.loanAmount || 'Pinjaman Peribadi',
-              content_category: 'loan_application',
-              quantity: 1,
-              price: Number(process.env.PURCHASE_VALUE || custom_data?.value || 1)
-            }
-          ],
-          description: user.loanAmount
-        })
-      : {
-          content_type: 'product',
-          contents: [
-            {
-              content_id: 'personal_loan_application',
-              content_name: 'Pinjaman Peribadi',
-              content_category: 'loan_application',
-              quantity: 1,
-              price: Number(process.env.PURCHASE_VALUE || custom_data?.value || 1)
-            }
-          ]
-        }
+    properties
   });
 
   const response = await fetch('https://business-api.tiktok.com/open_api/v1.3/event/track/', {
@@ -278,7 +269,7 @@ app.post('/api/meta-capi', async (req, res) => {
   }
 
   const { event_name, event_id, event_source_url, user, custom_data } = req.body || {};
-  if (!['ViewContent', 'Purchase'].includes(event_name) || !event_id || !event_source_url) {
+  if (!['ViewContent', 'Purchase', 'Search'].includes(event_name) || !event_id || !event_source_url) {
     return res.status(400).json({ ok: false, message: 'Invalid event payload.' });
   }
 
@@ -294,7 +285,9 @@ app.post('/api/meta-capi', async (req, res) => {
           value: Number(process.env.PURCHASE_VALUE || custom_data?.value || 1),
           currency: process.env.PURCHASE_CURRENCY || custom_data?.currency || 'MYR'
         })
-      : undefined
+      : event_name === 'Search'
+        ? compact({ search_string: custom_data?.search_string })
+        : undefined
   });
 
   const payload = {

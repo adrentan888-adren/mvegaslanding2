@@ -38,6 +38,31 @@ function buildTikTokProperties(user = {}) {
   };
 }
 
+async function trackSearch(searchString) {
+  const id = eventId('search');
+  const properties = {
+    ...buildTikTokProperties(),
+    search_string: searchString
+  };
+
+  if (window.fbq) {
+    window.fbq('track', 'Search', { search_string: searchString }, { eventID: id });
+  }
+
+  if (window.ttq) {
+    const externalIdHash = await sha256(id);
+    window.ttq.identify({ external_id: externalIdHash });
+    window.ttq.track('Search', properties, { event_id: id });
+  }
+
+  await sendCapi({
+    event_name: 'Search',
+    event_id: id,
+    event_source_url: window.location.href,
+    custom_data: properties
+  });
+}
+
 function cleanPhone(value) {
   const digits = String(value || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -175,6 +200,16 @@ document.getElementById('purchaseForm').addEventListener('submit', async (event)
     window.location.href = whatsappUrl;
     button.disabled = false;
   }
+});
+
+document.querySelectorAll('select[name="loanAmount"], select[name="state"]').forEach((field) => {
+  field.addEventListener('change', () => {
+    if (field.value) {
+      trackSearch(field.value).catch((error) => {
+        console.error('Search tracking failed:', error);
+      });
+    }
+  });
 });
 
 boot().catch(() => {
